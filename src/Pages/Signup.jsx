@@ -4,9 +4,40 @@ import { FaEye } from "react-icons/fa";
 
 import { IoEyeOff } from "react-icons/io5";
 import MyContainer from "../Components/MyContainer";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../firebase/firebase.config";
+import { toast } from "react-toastify";
+import { useState } from "react";
 
 const Signup = () => {
-  const handleSignup = () => {};
+  const [show, setShow] = useState(false);
+  const handleSignup = (e) => {
+    e.preventDefault();
+    const email = e.target.email?.value;
+    const password = e.target.password?.value;
+    console.log("SignUp function interned", {
+      email: email,
+      password: password,
+    });
+
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{6,}$/;
+    if (!regex.test(password)) {
+      toast.error(
+        "❌ Password must be at least 6 characters long, include at least one uppercase letter, one lowercase letter, and one special character."
+      );
+      return;
+    }
+
+    createUserWithEmailAndPassword(auth, email, password)
+      .then((result) => {
+        console.log(result.user);
+        toast.success("Signup successful");
+      })
+      .catch((error) => {
+        console.log(error);
+        toast.error(error.message);
+      });
+  };
 
   return (
     <div className="min-h-[96vh] flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 relative overflow-hidden">
@@ -68,11 +99,17 @@ const Signup = () => {
                   Password
                 </label>
                 <input
-                  type={""}
+                  type={show ? "text" : "password"}
                   name="password"
                   placeholder="••••••••"
                   className="input input-bordered w-full bg-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-pink-400"
                 />
+                <span
+                  onClick={() => setShow(!show)}
+                  className="absolute right-[8px] top-[36px] cursor-pointer z-50"
+                >
+                  {show ? <FaEye></FaEye> : <IoEyeOff></IoEyeOff>}
+                </span>
               </div>
 
               <button type="submit" className="my-btn">

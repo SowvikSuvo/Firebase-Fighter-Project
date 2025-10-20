@@ -1,15 +1,87 @@
 import { Link } from "react-router";
 
 import MyContainer from "../Components/MyContainer";
+import { useState } from "react";
+import { FaEye } from "react-icons/fa";
+import { IoEyeOff } from "react-icons/io5";
+import {
+  GithubAuthProvider,
+  GoogleAuthProvider,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+} from "firebase/auth";
+
+import { toast } from "react-toastify";
+import { auth } from "../firebase/firebase.config";
+
+const googleProvider = new GoogleAuthProvider();
+const githubProvider = new GithubAuthProvider();
 
 const Signin = () => {
+  const [show, setShow] = useState(false);
+  const [user, setUser] = useState(null);
   // const [email, setEmail] = useState(null);
 
-  const handleSignin = () => {};
+  const handleSignin = (e) => {
+    e.preventDefault();
+    const email = e.target.email?.value;
+    const password = e.target.password?.value;
+    console.log(email, password);
+    signInWithEmailAndPassword(auth, email, password)
+      .then((result) => {
+        console.log(result.user);
+        setUser(result.user);
+        toast.success("SignIn Successfully");
+        e.target.reset();
+      })
+      .catch((error) => {
+        toast.error(error.message);
+      });
+  };
+  const handleSignOut = () => {
+    signOut(auth)
+      .then(() => {
+        toast.success("SignOut Successful");
+        setUser(null);
+      })
+      .catch((error) => {
+        toast.error(error.message);
+      });
+  };
 
-  const handleGoogleSignin = () => {};
+  const handleGoogleSignin = () => {
+    signInWithPopup(auth, googleProvider)
+      .then((result) => {
+        console.log(result.user);
+        setUser(result.user);
+        toast.success("SignIn Successfully");
+      })
+      .catch((error) => {
+        toast.error(error.message);
+      });
+  };
 
-  const handleGithubSignin = () => {};
+  const handleGithubSignin = () => {
+    signInWithPopup(auth, githubProvider)
+      .then((result) => {
+        console.log(result.user);
+        const loggedInUser = result.user;
+
+        if (!loggedInUser.email) {
+          if (loggedInUser.providerData) {
+            const gitProvider = loggedInUser.providerData.find(
+              (p) => p.providerId === "github.com"
+            );
+            if (gitProvider && gitProvider.email) {
+              loggedInUser.email = gitProvider.email;
+            }
+          }
+        }
+        setUser(result.user);
+      })
+      .catch((error) => console.log(error));
+  };
 
   // console.log();
 
@@ -36,82 +108,103 @@ const Signin = () => {
 
           {/* Login card */}
           <div className="w-full max-w-md backdrop-blur-lg bg-white/10 border border-white/20 shadow-2xl rounded-2xl p-8">
-            <form onSubmit={handleSignin} className="space-y-5">
-              <h2 className="text-2xl font-semibold mb-2 text-center text-white">
-                Sign In
-              </h2>
-
-              <div>
-                <label className="block text-sm mb-1">Email</label>
-                <input
-                  type="email"
-                  name="email"
-                  // value={email}
-                  // onChange={(e) => setEmail(e.target.value)}
-                  placeholder="example@email.com"
-                  className="input input-bordered w-full bg-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-              </div>
-
-              <div className="relative">
-                <label className="block text-sm mb-1">Password</label>
-                <input
-                  type={"password"}
-                  name="password"
-                  placeholder="••••••••"
-                  className="input input-bordered w-full bg-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-              </div>
-
-              <button type="submit" className="my-btn">
-                Login
-              </button>
-
-              {/* Divider */}
-              <div className="flex items-center justify-center gap-2 my-2">
-                <div className="h-px w-16 bg-white/30"></div>
-                <span className="text-sm text-white/70">or</span>
-                <div className="h-px w-16 bg-white/30"></div>
-              </div>
-
-              {/* Google Signin */}
-              <button
-                type="button"
-                onClick={handleGoogleSignin}
-                className="flex items-center justify-center gap-3 bg-white text-gray-800 px-5 py-2 rounded-lg w-full font-semibold hover:bg-gray-100 transition-colors cursor-pointer"
-              >
+            {user ? (
+              <div className="text-center space-y-3">
                 <img
-                  src="https://www.svgrepo.com/show/475656/google-color.svg"
-                  alt="google"
-                  className="w-5 h-5"
+                  src={user?.photoURL || "https://via.placeholder.com/88"}
+                  className="h-20 w-20 rounded-full mx-auto"
+                  alt=""
                 />
-                Continue with Google
-              </button>
+                <h2 className="text-xl font-semibold">{user?.displayName}</h2>
+                <p className="text-white/80 font-semibold">{user?.email}</p>
+                <button className="my-btn" onClick={handleSignOut}>
+                  Sign out
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleSignin} className="space-y-5">
+                <h2 className="text-2xl font-semibold mb-2 text-center text-white">
+                  Sign In
+                </h2>
 
-              {/* Github Signin */}
-              <button
-                type="button"
-                onClick={handleGithubSignin}
-                className="flex items-center justify-center gap-3 bg-white text-gray-800 px-5 py-2 rounded-lg w-full font-semibold hover:bg-gray-100 transition-colors cursor-pointer"
-              >
-                <img
-                  src="https://img.icons8.com/fluency/48/github.png"
-                  alt="google"
-                  className="w-5 h-5"
-                />
-                Continue with Github
-              </button>
+                <div>
+                  <label className="block text-sm mb-1">Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    // value={email}
+                    // onChange={(e) => setEmail(e.target.value)}
+                    placeholder="example@email.com"
+                    className="input input-bordered w-full bg-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                </div>
 
-              <p className="text-center text-sm text-white/80 mt-3">
-                Don’t have an account?{" "}
-                <Link
-                  to="/signup"
-                  className="text-pink-300 hover:text-white underline"
+                <div className="relative">
+                  <label className="block text-sm mb-1">Password</label>
+                  <input
+                    type={show ? "text" : "password"}
+                    name="password"
+                    placeholder="••••••••"
+                    className="input input-bordered w-full bg-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                  <span
+                    onClick={() => setShow(!show)}
+                    className="absolute right-[8px] top-[36px] cursor-pointer z-50"
+                  >
+                    {show ? <FaEye></FaEye> : <IoEyeOff></IoEyeOff>}
+                  </span>
+                </div>
+
+                <button type="submit" className="my-btn">
+                  Login
+                </button>
+
+                {/* Divider */}
+                <div className="flex items-center justify-center gap-2 my-2">
+                  <div className="h-px w-16 bg-white/30"></div>
+                  <span className="text-sm text-white/70">or</span>
+                  <div className="h-px w-16 bg-white/30"></div>
+                </div>
+
+                {/* Google Signin */}
+                <button
+                  type="button"
+                  onClick={handleGoogleSignin}
+                  className="flex items-center justify-center gap-3 bg-white text-gray-800 px-5 py-2 rounded-lg w-full font-semibold hover:bg-gray-100 transition-colors cursor-pointer"
                 >
-                  Sign up
-                </Link>
-              </p>
-            </form>
+                  <img
+                    src="https://www.svgrepo.com/show/475656/google-color.svg"
+                    alt="google"
+                    className="w-5 h-5"
+                  />
+                  Continue with Google
+                </button>
+
+                {/* Github Signin */}
+                <button
+                  type="button"
+                  onClick={handleGithubSignin}
+                  className="flex items-center justify-center gap-3 bg-white text-gray-800 px-5 py-2 rounded-lg w-full font-semibold hover:bg-gray-100 transition-colors cursor-pointer"
+                >
+                  <img
+                    src="https://img.icons8.com/fluency/48/github.png"
+                    alt="google"
+                    className="w-5 h-5"
+                  />
+                  Continue with Github
+                </button>
+
+                <p className="text-center text-sm text-white/80 mt-3">
+                  Don’t have an account?{" "}
+                  <Link
+                    to="/signup"
+                    className="text-pink-300 hover:text-white underline"
+                  >
+                    Sign up
+                  </Link>
+                </p>
+              </form>
+            )}
           </div>
         </div>
       </MyContainer>
